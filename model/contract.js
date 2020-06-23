@@ -19,57 +19,59 @@ const Contract = {
             "INSERT INTO contracts (idRoom, idOwner, idSlave, startDate, endDate, circlePay, deposit, dayPay, note, idBlock) VALUES (?)";
         let query2 = "INSERT INTO user_room (idUser, idRoom) VALUES ?";
 
-        return connection.beginTransaction((err) => {
-            if (err) {
-                console.log(err);
-                return connection.rollback(() => {
-                    callback(err);
-                });
-            }
-
-            connection.query(
-                query,
-                [
-                    [
-                        idRoom,
-                        idOwner,
-                        idSlave,
-                        startDate,
-                        endDate,
-                        circlePay,
-                        deposit,
-                        dayPay,
-                        note,
-                        idBlock,
-                    ],
-                ],
-                (err, rows) => {
-                    if (err) {
-                        return connection.rollback(() => {
-                            callback(err);
-                        });
-                    }
-
-                    connection.query(
-                        query2,
-                        [
-                            userRooms.map((userRoom) => [
-                                userRoom.idUser,
-                                userRoom.idRoom,
-                            ]),
-                        ],
-                        (err, rows) => {
-                            if (err) {
-                                return connection.rollback(() => {
-                                    callback(err);
-                                });
-                            }
-                            connection.commit(callback);
-                        }
-                    );
+        return connection.getConnection((err, connection) => {
+            return connection.beginTransaction((err) => {
+                if (err) {
+                    console.log(err);
+                    return connection.rollback(() => {
+                        callback(err);
+                    });
                 }
-            );
-        });
+
+                connection.query(
+                    query,
+                    [
+                        [
+                            idRoom,
+                            idOwner,
+                            idSlave,
+                            startDate,
+                            endDate,
+                            circlePay,
+                            deposit,
+                            dayPay,
+                            note,
+                            idBlock,
+                        ],
+                    ],
+                    (err, rows) => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                callback(err);
+                            });
+                        }
+
+                        connection.query(
+                            query2,
+                            [
+                                userRooms.map((userRoom) => [
+                                    userRoom.idUser,
+                                    userRoom.idRoom,
+                                ]),
+                            ],
+                            (err, rows) => {
+                                if (err) {
+                                    return connection.rollback(() => {
+                                        callback(err);
+                                    });
+                                }
+                                connection.commit(callback);
+                            }
+                        );
+                    }
+                );
+            });
+        })
     },
     createUserRoom: (req, callback) => {
         const { userRooms } = req.body;
@@ -117,36 +119,38 @@ const Contract = {
         let query2 = 'DELETE FROM user_room WHERE idRoom = ?';
         let query3 = 'INSERT INTO user_room (idUser, idRoom) VALUES ?'
 
-        return connection.beginTransaction((err) => {
-            if (err) {
-                console.log(err);
-                return connection.rollback(() => {
-                    callback(err);
-                });
-            }
-
-            connection.query(query, [idSlave, startDate, endDate, circlePay, deposit, dayPay, note, id], (err, rows) => {
+        return connection.getConnection((err, connection) => {
+            return connection.beginTransaction((err) => {
                 if (err) {
+                    console.log(err);
                     return connection.rollback(() => {
                         callback(err);
                     });
                 }
 
-                connection.query(query2, [idRoom], (err, rows) => {
+                connection.query(query, [idSlave, startDate, endDate, circlePay, deposit, dayPay, note, id], (err, rows) => {
                     if (err) {
                         return connection.rollback(() => {
                             callback(err);
                         });
                     }
 
-                    connection.query(query3, [userRooms.map(userRoom => [userRoom.idUser, userRoom.idRoom,])], (err, rows) => {
+                    connection.query(query2, [idRoom], (err, rows) => {
                         if (err) {
                             return connection.rollback(() => {
                                 callback(err);
                             });
                         }
 
-                        connection.commit(callback);
+                        connection.query(query3, [userRooms.map(userRoom => [userRoom.idUser, userRoom.idRoom,])], (err, rows) => {
+                            if (err) {
+                                return connection.rollback(() => {
+                                    callback(err);
+                                });
+                            }
+
+                            connection.commit(callback);
+                        })
                     })
                 })
             })
